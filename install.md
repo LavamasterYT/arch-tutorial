@@ -1,60 +1,79 @@
 # Unofficial Arch Install Guide
-### Notes:
-<> means that you need to change it with your own text (don't include the <>)
 
-**Backup any data before proceeding**
+This will guide you into installing Arch Linux onto your system, and how to set it up.
 
-**Read this guide entirely before proceeding to perform this**
+##### It is recommended you test inside a VM before proceeding on a real machine in order to make sure what you are doing.
 
-On commands that use `sudo`, it can be omitted if you are logged in as the root user.
-
-`$ <command>` represents the live USB shell, whereas `#$ <command>` represents the root partition shell. If neither is there, then it can be applied to both shells. If there is a different prefix, then it is a shell from an application.
-
-## Verifying you are in UEFI mode
-If you are booted from the live USB, verify it's in UEFI mode by running
+## Verifying you are in UEFI mode <a name='uefi'></a>
+If you are booted from the live USB, verify it's in UEFI mode by running:
 ```
 $ ls /sys/firmware/efi/efivars
 ```
 If the directory does not exist, then the USB is not booted in UEFI mode. Make sure to boot it into UEFI mode before proceeding.
 
-## Live USB clock
-Ensure that the clock is accurate by running this command
+## Live USB clock <a name='clock'></a>
+Ensure that the clock is accurate by running:
 ```
 $ timedatectl set-ntp true
 ```
 
-## Internet
+## Internet <a name='internet'></a>
 You need to set up internet before doing a lot of stuff in Arch. Steps are different if you use either Ethernet or WiFi
 
-### Ethernet
+### Ethernet <a name='ethernet'></a>
+> Untested
+
 If you are booted into the live USB, then you should be good to go. Just run `ping 1.1.1.1` to make sure that you are able to access the internet. If for some reason you are unable to connect, or you are booted into Arch without the live USB, go to the **Setting up DHCP** section in the **WiFi** section
 
-### WiFi
+### WiFi <a name='wifi'></a>
 WiFi is a bit more complicated. You have to set up drivers, connect to the router, and set a DHCP thing or something.
 
-#### Connecting to the internet.
-We are going to use a tool called `iwd` to do this.
+#### Checking drivers <a name='drivers'></a>
+Verify you have proper WiFi drivers working in the live shell before proceeding.
 
-Install the iwd package and start/enable the service, if you are in the live USB, all of this is done for you. If you are booted to Arch, simply run these 2 commands. You only need to run them once as the first one makes it auto start at boot.
+Verify that a kernel driver is loaded by running:
 ```
-#$ sudo systemctl enable iwd.service
-#$ sudo systemctl start iwd.service
+$ lspci -k
 ```
+> Tip: If the output is way too long that it goes off screen, try piping it to less in order to go line by line. `lspci -k | less`
 
-First step, open the shell for `iwd` by using this command:
+You should see some sort of kernel driver loaded, as shown in this example:
 ```
-sudo iwctl
+06:00.0 Network controller: Intel Corporation WiFi Link 5100
+	Subsystem: Intel Corporation WiFi Link 5100 AGN
+	Kernel driver in use: iwlwifi
+	Kernel modules: iwlwifi
 ```
-It should bring you to another shell. This will be used for connecting to internet.
-Next, list your devices by running this in the shell:
+If not, more setup may have to be done.
+
+##### Broadcom <a name='broadcom'></a>
+If using a Broadcom card, you can load the broadcom-wl driver that is already on the live USB. To load it, we must block the conflicting drivers that are trying to grab the card.
+
+To block, assuming you are in UEFI mode, edit the kernel boot parameters by adding:
+```
+module_blacklist=b43,b43legacy,ssb,bcm43xx,brcm80211,brcmfmac,brcmsmac,bcma
+```
+You can use systemd-boot to accomplish this by pressing E to edit the kernel boot parameters before booting into Arch.
+
+#### Connecting to the internet. <a name='connecting'></a>
+Connecting to the internet can be a hassle in Arch, however assuming that the kernel drivers are loaded correctly, the live USB already comes with tools that make connecting to the internet easy. One such tool, which we are going to use, is called `iwd`.
+
+To start, launch the `iwd` shell by running:
+```
+$ iwctl
+```
+It should bring you to the `iwd` shell. This will be used for connecting to internet.
+Next, list your network adapters by running this in the shell:
 ```
 [iwd]# device list
 ```
-Now that you know which device is the correct WiFi device, scan for networks using this command:
+Note down the the WiFi adapter that you are going to be using as we are going to use it for the following commands.
+
+You can scan for networks by running:
 ```
 [iwd]# station <device> scan
 ```
-Let it scan for networks. You can list the networks it found by typing:
+This will scan for networks, however won't print them. You can list the networks it found by running:
 ```
 [iwd]# station <device> get-networks
 ```
@@ -62,31 +81,30 @@ Now, you can connect to the network. Type in the following. If the network requi
 ```
 [iwd]# station <device> connect <SSID>
 ```
-Finally, just exit by typing this:
+Finally, just exit by running:
 ```
 [iwd]# exit
 ```
-#### Setting up DHCP
-Now just because you are connected to the network doesn't mean it will work. You have to set up DHCP in order to access the outside network. This is required for both ethernet and WiFi. We are going to be using a tool called `dhclient` to accomplish this. If you are in the live USB, it should be installed. If not, install it to your system from the live USB.
+#### Setting up DHCP <a name='dhcp'></a>
+Now just because you are connected to the network doesn't mean it will work. You have to set up DHCP in order to access the outside network. This is required for both ethernet and WiFi. We are going to be using a tool called `dhclient` to accomplish this.
 
 Simply just run this command and wait for it to finish:
 ```
-sudo dhclient -v
+$ dhclient -v
 ```
 
-### Testing the connection
-You can test if your internet is set up correctly by running
+### Testing the connection <a name='test'></a>
+You can test if your internet is set up correctly by pinging a server:
 ```
-ping 1.1.1.1
+$ ping 1.1.1.1
 ```
-## Partitioning
-Setting up partitions is hard but easy if you understand.
+## Partitioning <a name='partitioning'></a>
+Setting up partitions can be tedious, so I will try to explain it the best I can.
 
 First, list your disks using this command:
 ```
-$ sudo fdisk -l | grep  "Disk /dev/"
+$ fdisk -l | grep  "Disk /dev/"
 ```
-> If you are logged in as root, you can omit sudo for any of the commands that use sudo
 
 This will list your disks and their respective "paths".
 This is an example output:
@@ -98,16 +116,15 @@ Disk /dev/sda: 476.94 GiB, 512110190592 bytes, 1000215216 sectors
 Disk /dev/sdb: 465.76 GiB, 500107862016 bytes, 976773168 sectors  
 Disk /dev/sdc: 1.82 TiB, 2000398934016 bytes, 3907029168 sectors
 ```
-In this case, `/dev/nvme0n1` is my main 500GB NVMe SSD, so when I run the `parted` command later on, this is the path I'm gonna use.
+> To view more information about a disk, including its partitions, run `fdisk -l /dev/<disk to examine>`
 
 Now, we will be using a tool called `parted`  to partition our disks.
 
 Start the parted shell by typing
 ```
-$ sudo parted <path to disk>
+$ parted /dev/<disk to partition>
 ```
-Remember, the path to disk was the paths that was listed in the `fdisk` output.
-Next, format the disk by typing this:
+Next, format the disk and convert it to a gpt disk by running:
 ```
 (parted) mklabel gpt
 ```
@@ -144,50 +161,36 @@ Now that we have done everything, quit `parted` to apply the changes and go back
 ```
 (parted) quit
 ```
-Now that we set up our partitions, we have to find their specified paths.
+Now that we set up our partitions, we have to find their  paths.
 
 Run this command to find out their paths:
 ```
-$ sudo fdisk -l | grep "<disk path>"
+$ fdisk -l /dev/<disk that was partitioned>
 ```
-A example output:
-```
-Partition 1 does not start on physical sector boundary.  
-Partition 2 does not start on physical sector boundary.  
-Disk /dev/sda: 476.94 GiB, 512110190592 bytes, 1000215216 sectors  
-/dev/sda1 2048 614399 612352 299M Microsoft basic data  
-/dev/sda2 614400 41943039 41328640 19.7G Linux swap  
-/dev/sda3 41943040 1000214527 958271488 456.9G EFI System
-```
-In this case, we need to focus on the last 3 lines, the ones with the disk path and a number.
-`/dev/sda1` in my case is my EFI partition since its 299MB or close to 300MB big as shown by `299M` in the line.
-`/dev/sda2` is my swap since its 19.7G big and it says Linux swap
-`/dev/sda3` is my root partition since its the biggest one at 456.9G
-Save these, we will use them in a bit.
 
-Format the EFI partition by running
+Format the EFI partition by running:
 ```
-$ mkfs.fat -F32 <path to EFI partition>
+$ mkfs.fat -F32 /dev/<EFI partition>
 ```
-Format the swap partition by running
+Format the swap partition by running:
 ```
-$ sudo mkswap <swap partition>
-$ swapon <swap parition>
+$ mkswap /dev/<swap partition>
+$ swapon /dev/<swap parition>
 ```
 Format the root partition by running
 ```
-$ mkfs.ext4 <root partition>
+$ mkfs.ext4 /dev/<root partition>
 ```
 Finally, mount the necessary partitions so we can work with them.
 ```
-$ mount <root partition> /mnt
-$ mount <efi partition> /mnt/efi
+$ mount /dev/<root partition> /mnt
+$ mount /dev/<efi partition> /mnt/efi
 ```
-> If the last command fails, you may need to create the directory by running `mkdir /mnt/efi`
+> You may need to create the directory if they fail by running `mkdir /mnt/efi`
 
 Now, you are ready to install Arch.
 
-## Installing Arch
+## Installing Arch <a name='installing'></a>
 
 Now we have to install Arch onto the formatted root partition. We are going to use a tool called `pacstrap` in order to accomplish this. The format for the `pacstrap` command is the following
 ```
