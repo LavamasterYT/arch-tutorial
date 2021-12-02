@@ -192,19 +192,19 @@ Now, you are ready to install Arch.
 
 ## Installing Arch <a name='installing'></a>
 
-Now we have to install Arch onto the formatted root partition. We are going to use a tool called `pacstrap` in order to accomplish this. The format for the `pacstrap` command is the following
+Now we have to install Arch onto the mounted root partition. We are going to use a tool called `pacstrap` in order to accomplish this. The format for the `pacstrap` command is the following
 ```
 $ pacstrap <root partition> <packages>
 ```
-Now lets install Arch to the root partition. Install it by installing these packages onto the `/mnt` folder where the root partition is mounted.
+Now lets install Arch to the root partition. Install the following packages to the root partition like so:
 ```
 $ pacstrap /mnt base linux linux-firmware
 ```
-This will install Arch onto the drive. After that is done you may want to install some other basic tools before changing root. This can include a text editor or other utilities as the `base` doesn't provide all the utilities. You can install other tools later with the `pacman` command, but for now, install the essential stuff like a text editor.
+This will install Arch onto root partition. After that is done you may want to install some other basic tools before changing root. This can include a text editor or other utilities as the `base` doesn't provide all the utilities. You can install other tools later with the `pacman` command, but for now, install the essential stuff like a text editor.
 ```
-$ pacstrap /mnt neovim ntfs-3g
+$ pacstrap /mnt neovim
 ```
-> You may want to install `vim` and `vi` alongside `neovim` as other applications might look for them instead of `neovim` or another text editor you install
+> You may want to install `vim` and `vi` alongside `neovim` as other applications like `sudo` might look for them instead of `neovim` or another text editor you install
 
 Now you have to generate the `fstab` file for the system. Generate it by running the following
 ```
@@ -215,150 +215,146 @@ Check the resulting file in case of any error
 $ cat /mnt/etc/fstab
 ```
 
-## Setting up Arch
+## Setting up Arch <a name='settingup'></a>
 Now it's time to set up the Arch system. Change root to the root partition by running
 ```
 $ arch-chroot /mnt
 ```
-This will essentially "ssh" into the system.
+This will essentially locally "ssh" into the system. This is a very useful tool, more information about it will be provided in the [troubleshooting]() section
 
-### Setting up time
+### Setting up time <a name='settingtime'></a>
 
 Change the timezone to central time by running
 ```
-#$ ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
+$ ln -sf /usr/share/zoneinfo/America/Chicago /etc/localtime
 ```
 Then synchronise the hardware clock by running
 ```
-#$ hwclock --systohc
+$ hwclock --systohc
 ```
 
-### Setting up locale's
+### Setting up locale's <a name='settinglocale'></a>
 **Don't mess this up.** Trust me it's gonna save a lot of headaches later.
 
 Generate the locale by simply running
 ```
-#$ locale-gen
+$ locale-gen
 ```
 Now set the `LANG` variable by running
 ```
-#$ echo "LANG=en_US.UTF-8" > /etc/locale.conf
+$ echo "LANG=en_US.UTF-8" >> /etc/locale.conf
 ```
-Now edit the `/etc/locale.gen` file. If you are using `neovim`, simply run
-```
-#$ nvim /etc/locale.gen
-```
-
-Now uncomment the following lines (most likely on line 13 and 14)
+Now edit the `/etc/locale.gen` file and uncomment the following lines (most likely on line 13 and 14)
 ```
 /etc/locale.gen
-
+----------------------
  13| en_US ISO-8859-1
  14| en_US.UTF-8 UTF-8
 ```
 Finally, regenerate the locale by running
 ```
-#$ locale-gen
+$ locale-gen
 ```
-### Setting up hosts
+### Setting up hosts <a name='settinghost'></a>
 
 Set up the hostname by running the following
 ```
-#$ echo "<hostname>" > /etc/hostname
+$ echo "<hostname>" > /etc/hostname
 ```
-The hostname is basically the PC name and cannot have spaces. Try to linit yourself with only dashes, numbers, and letters. Examples could be `arch-pc`, `arch`, `gaming-pc`, etc.
+The hostname is basically the PC name, and is used to uniquely identify the device on the network. See [RFC-1178](https://datatracker.ietf.org/doc/html/rfc1178) for choosing a hostname. Examples could be `arch-pc`, `arch`, `gaming-pc`, etc.
 
 Now setup the hosts file by running
 ```
-#$ echo "127.0.0.1\tlocalhost\n::1\t\tlocalhost" > /etc/hosts
+$ echo -e "127.0.0.1\tlocalhost\n::1\t\tlocalhost" >> /etc/hosts
 ```
 
-### Almost done
+### Finishing Touches <a name='settingdone'></a>
 
-Change the root password by running the following. It will promot you for a new password.
+Change the root password by running the following. It will prompt you for a new password.
 ```
-#$ passwd
-```
-
-Now install any extra packages you might want/need. For example, `dhclient` for DHCP, `sudo`, `iwd` for connecting to WiFi, any WiFi drivers you might need, etc. You can do this with the `pacman` command.
-```
-#$ sudo pacman -S <packages>
+$ passwd
 ```
 
-### Notes
-If once you have booted the Arch install and you might have some packages missing, you can boot back into the Arch live USB and change root to the drive. Just remount the root partition as we did a while ago and run the `arch-chroot` command like we did.
+Now install any extra packages you might want/need. For example, `dhclient` for DHCP, `sudo`, any WiFi drivers you might need, etc. You can do this with the `pacman` command.
+```
+$ pacman -S <packages>
+```
+> If once you have booted the Arch install and you might have some packages missing, you can boot back into the Arch live USB and ch-root back into the system. Just remount the root partition as we did in the [partitioning](#partitioning) section and run the `arch-chroot` command like we did in the [setting up](#settingup) section.
 
-## Installing GRUB
+## Installing GRUB <a name='grub'></a>
 Finally, before we boot, we have to install a boot loader and install CPU microcode. To do this run the following command
 
 ```
-#$ pacman -S grub efibootmgr
+$ pacman -S grub efibootmgr
 ```
 
 Now install the microcode, if you have a AMD CPU, install `amd-ucode`, if you have an Intel CPU, install `intel-ucode`
 ```
-#$ sudo pacman -S <microcode package>
+$ pacman -S <microcode package>
 ```
 
 Now install the GRUB bootloader to the EFI drive by running
 ```
-#$ sudo grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
+$ grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
 ```
 And then create the GRUB configuration file by running
 ```
-#$ sudo grub-mkconfig -o /boot/grub/grub.cfg
+$ grub-mkconfig -o /boot/grub/grub.cfg
 ```
+You can make any changes by editing the grub configuration file located in `/etc/default/grub`, just be sure to rerun the `grub-config` command again just like above.
+
 Finally, you can exit out of the shell by just typing in `exit`, and it should put you right back into the live USB shell.
 ```
-#$ exit
+$ exit
 ```
 
-## Booting Arch
+## Booting Arch <a name='booting'></a>
 Before shutting down the live USB, make sure to unmount the drives in case of any error
 
-Run it in the following order:
+Run in the following order:
 ```
 $ umount -R /mnt/efi
 $ umount -R /mnt
 ```
 Check for any busy errors after each command. If all goes well, you can finally shutdown the system and boot into Arch!
 
-## Post install
+## Post install <a name='postinstall'></a>
 
-### Network
-Now that you are booted into Arch, connect to the internet. Refer to the **Internet** section from before.
+### Network <a name='network'></a>
+Now that you are booted into Arch, connect to the internet. Refer to the [internet]() section from before.
 
-### Setting up users
+### Setting up users <a name='users'></a>
 Now it's time to set up users. This is necessary since being logged in as root at all times is dangerous and some applications wont support being ran by root.
 
 Create a new user by running
 ```
-#$ useradd -m <username>
+$ useradd -m <username>
 ```
-> Only numbers, letters, symbols,  allowed just to be safe
 
 And now set it's password by running
 ```
-#$ passwd <username>
+$ passwd <username>
 ```
-### Setting up sudo
+### Setting up sudo <a name='sudo'></a>
 Add the user to the `wheel` group by running
 ```
-#$ usermod -aG wheel <username>
+$ usermod -aG wheel <username>
 ```
-Then, edit the sudoers file and uncomment this line (most likely line 84
+Then, edit the sudoers file and uncomment this line (most likely line 84):
 ```
 /etc/sudoers
-
+-------------------------
  84| %wheel ALL=(ALL) ALL
 ```
+> You may have to use a application called `visudo` which is installed alongside `sudo` to edit the `sudoers` file. This app requires `vi` to be installed.
+
 Now test out if sudo works by typing in `exit` to back to the login prompt. Login to the new user you create and run this command
 ```
-#$ sudo whoami
+$ sudo whoami
 ```
 Type in the root password and check for any errors. If the output says `root` then it's set up.
 
-## Done
+## Finished <a name='finished'></a>
 You have now set up Arch! Congrats, you can now set up KDE or the Aura package manager or do whatever you want.
 
 ## Ref (ignore this part)
