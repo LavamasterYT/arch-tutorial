@@ -4,6 +4,30 @@ This will guide you into installing Arch Linux onto your system, and how to set 
 
 ##### It is recommended you test inside a VM before proceeding on a real machine in order to make sure what you are doing.
 
+1. [Verifying you are in UEFI mode](#uefi)
+2. [Live USB Clock](#clock)
+3. [Internet](#internet)
+	1. [Ethernet](#ethernet)
+	2. [WiFi](#wifi)
+		1. [Checking Drivers](#drivers)
+			1. [Broadcom](#broadcom)
+		2. [Connecting to the internet](#connecting)
+		3. [Setting up DHCP](#dhcp)
+	3. [Testing the connectino](#testing)
+4. [Partitioning](#partitioning)
+5. [Installing Arch](#installing)
+6. [Setting up Arch](#settingup)
+	1. [Setting up time](#settingtime)
+	2. [Setting up locale's](#settinglocale)
+	3. [Setting up hosts](#settinghost)
+	4. [Finishing Touches](#settingdone)
+7. [Installing GRUB](#grub)
+8. [Booting Arch](#booting)
+9. [Post Install](#postinstall)
+	1. [Setting up users](#users)
+	2. [Setting up sudo](#sudo)
+10. [Finished](#finished)
+
 ## Verifying you are in UEFI mode <a name='uefi'></a>
 If you are booted from the live USB, verify it's in UEFI mode by running:
 ```
@@ -23,7 +47,7 @@ You need to set up internet before doing a lot of stuff in Arch. Steps are diffe
 ### Ethernet <a name='ethernet'></a>
 > Untested
 
-If you are booted into the live USB, then you should be good to go. Just run `ping 1.1.1.1` to make sure that you are able to access the internet. If for some reason you are unable to connect, or you are booted into Arch without the live USB, go to the **Setting up DHCP** section in the **WiFi** section
+If you are booted into the live USB, then you should be good to go. Just run `ping 1.1.1.1` to make sure that you are able to access the internet. If for some reason you are unable to connect, or you are booted into Arch without the live USB, go to the [Setting up DHCP](#dhcp) section in the [WiFi](#wifi) section
 
 ### WiFi <a name='wifi'></a>
 WiFi is a bit more complicated. You have to set up drivers, connect to the router, and set a DHCP thing or something.
@@ -202,9 +226,9 @@ $ pacstrap /mnt base linux linux-firmware
 ```
 This will install Arch onto root partition. After that is done you may want to install some other basic tools before changing root. This can include a text editor or other utilities as the `base` doesn't provide all the utilities. You can install other tools later with the `pacman` command, but for now, install the essential stuff like a text editor.
 ```
-$ pacstrap /mnt neovim
+$ pacstrap /mnt vim
 ```
-> You may want to install `vim` and `vi` alongside `neovim` as other applications like `sudo` might look for them instead of `neovim` or another text editor you install
+> You may want to install `emacs` and `vi` alongside `vim` as other applications like `sudo` might look for them instead of `vim` or another text editor you install
 
 Now you have to generate the `fstab` file for the system. Generate it by running the following
 ```
@@ -220,7 +244,7 @@ Now it's time to set up the Arch system. Change root to the root partition by ru
 ```
 $ arch-chroot /mnt
 ```
-This will essentially locally "ssh" into the system. This is a very useful tool, more information about it will be provided in the [troubleshooting]() section
+This will essentially locally "ssh" into the system. This is a very useful tool, more information about it will be provided in the [troubleshooting]() section.
 
 ### Setting up time <a name='settingtime'></a>
 
@@ -279,7 +303,7 @@ Now install any extra packages you might want/need. For example, `dhclient` for 
 ```
 $ pacman -S <packages>
 ```
-> If once you have booted the Arch install and you might have some packages missing, you can boot back into the Arch live USB and ch-root back into the system. Just remount the root partition as we did in the [partitioning](#partitioning) section and run the `arch-chroot` command like we did in the [setting up](#settingup) section.
+> If once you have booted the Arch install and you might have some packages missing, you can boot back into the Arch live USB and chroot back into the system. Just remount the root partition as we did in the [partitioning](#partitioning) section and run the `arch-chroot` command like we did in the [setting up](#settingup) section.
 
 ## Installing GRUB <a name='grub'></a>
 Finally, before we boot, we have to install a boot loader and install CPU microcode. To do this run the following command
@@ -321,7 +345,7 @@ Check for any busy errors after each command. If all goes well, you can finally 
 ## Post install <a name='postinstall'></a>
 
 ### Network <a name='network'></a>
-Now that you are booted into Arch, connect to the internet. Refer to the [internet]() section from before.
+Now that you are booted into Arch, connect to the internet. Refer to the [internet](#internet) section from before.
 
 ### Setting up users <a name='users'></a>
 Now it's time to set up users. This is necessary since being logged in as root at all times is dangerous and some applications wont support being ran by root.
